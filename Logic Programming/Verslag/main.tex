@@ -1,0 +1,169 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+
+\title{Capita Selecta Artificial Intelligence \\ Statistical Relational Learning}
+\author{Thijs Dieltjens \and Wout Vekemans }
+\date{December 2015}
+
+\begin{document}
+
+\maketitle
+
+\section{Probabilistic Databases}
+\subsection{Tables}
+The database contains musicians, bands, albums and songs. Each musician plays in one or more bands, each band plays some songs, and each song is on one or more albums. The \emph{plays\_in} relation can be seen in table \ref{playsin}, the \emph{song} relation is in table \ref{song} and the albums are in table \ref{album}.
+\subsection{Queries}
+%%%% FIRST QUERY 
+The first query is ``Which are the songs that are played by Dave Grohl''.
+
+\paragraph{SQL}
+\begin{verbatim}
+SELECT s.title 
+FROM song s, plays_in p, album a
+WHERE p.artist="Dave Grohl" and a.title = s.album and a.band = p.band
+\end{verbatim}
+\paragraph{First Order Logic} ~\\
+Q(t) $= \exists $ a,b,i,y,j (plays\_in("Dave Grohl",b)$ \wedge$ album(i,y,b,a)$\wedge$ song(j,t,a))
+
+\paragraph{ProbLog}
+\begin{verbatim}
+result(Artist,Title) :-
+  plays_in(Artist,Band), 
+  song(_,Title,Album),
+  Album(_,_,Band,Album).
+    
+query(result("Dave Grohl",_)).
+
+\end{verbatim}
+
+%%%%% SECOND QUERY
+The second query is Boolean : ``What is the probability that Dave Grohl participated on the album \emph{Nevermind}?''
+\paragraph{First Order Logic} ~\\
+
+Q $= \exists $ b,i,y, (plays\_in("Dave Grohl",b)$ \wedge$ album(i,y,b,Nevermind)
+
+\paragraph{ProbLog}
+\begin{verbatim}
+album_artist(Artist, Album) :-
+        plays_in(Artist, Band),
+        album(_,_,Band, Album).
+ 
+query(album_artist("Dave Grohl", "Nevermind")).
+\end{verbatim}
+
+\paragraph{Manual Inference}
+\begin{equation}
+\begin{split}
+P & = P(plays\_in(\text{`Dave Grohl'},Band))*P(album(\_,\_,Band,\text{`Nevermind'}))
+\\
+  & = P(plays\_in(\text{`Dave Grohl'}, `Foo~ Fighters'))*P(album(\_,\_,`Foo~ Fighters',\text{`Nevermind'}) \\& ~~~~~~ + P(plays\_in(\text{`Dave Grohl'}, \text{`Nirvana'})*P(album(\_,\_,\text{`Nirvana'},\text{`Nevermind'}))
+ \\ 
+ & = 0.7*0 + 0.3*0.97 \\
+ & = 0.291
+\end{split}
+\end{equation}
+
+\begin{table}[]
+
+\centering
+
+
+\begin{tabular}{lll}
+\multicolumn{3}{c}{\textbf{Plays\_in}} \\ \hline
+\textbf{Artist}          & \textbf{Band}          & \textbf{P} \\
+Dave Grohl      & Foo Fighters  & 0.7  \\
+Dave Grohl      & Nirvana       & 0.3  \\
+Kurt Cobain     & Nirvana       & 0.88 \\
+James Hetfield  & Metallica     & 0.8  \\ \hline
+\end{tabular}
+\caption{Plays\_in relation}
+\label{playsin}
+\end{table}
+
+\begin{table}[]
+\centering
+
+\begin{tabular}{llll}
+\multicolumn{4}{c}{\textbf{Song}}                                         \\ \hline
+\textbf{Id} & \textbf{Title} & \textbf{Album}                & \textbf{P} \\
+1           & Learn To Fly   & There Is Nothing Left To Lose & 0.68       \\
+2           & Learn To Fly   & Greatest Hits                 & 0.28       \\
+3           & Lithium        & Nevermind                     & 0.7        \\
+4           & Fade To Black  & Ride The Lightning                              & 0.69       \\ \hline
+\end{tabular}
+\caption{Song table}
+\label{song}
+\end{table}
+\begin{table}[]
+\centering
+
+
+\begin{tabular}{lllll}
+\multicolumn{5}{c}{\textbf{Album}}                                                          \\ \hline
+\textbf{Id} & \textbf{Release} & \textbf{Band} & \textbf{Title}                & \textbf{P} \\
+1           & 1984             & Metallica     & Ride The Lightning            & 0.95       \\
+2           & 1991             & Nirvana       & Nevermind                     & 0.97       \\
+3           & 1999             & Foo Fighters  & There Is Nothing Left To Lose & 0.92       \\
+4           & 2009             & Foo Fighters  & Greatest Hits                 & 0.24       \\ \hline
+\end{tabular}
+\caption{Album table}
+\label{album}
+\end{table}
+
+
+
+
+\section{Beverage Preferences}
+\paragraph{Buy predicate}
+The buy predicate looks as follows: 
+\begin{verbatim}
+0.1::buy(Person, Drink) :-
+	preference(Person, Drink, like_little).
+
+0.5::buy(Person, Drink) :-
+	preference(Person, Drink, like_much).
+
+0.9::buy(Person, Drink) :-
+	preference(Person, Drink, like_verymuch).
+\end{verbatim}
+
+\paragraph{Subjective Information}
+The \emph{preference\_soft} relation looks like this: 
+\begin{verbatim}
+0.4::preference_soft(Person, Drink, like_no);
+0.5::preference_soft(Person, Drink, like_little);
+0.1::preference_soft(Person, Drink, like_much) :-
+  preference(Person, Drink, like_no).
+
+0.5::preference_soft(Person, Drink, like_no);
+0.4::preference_soft(Person, Drink, like_much);
+0.1::preference_soft(Person, Drink, like_verymuch) :-
+  preference(Person, Drink, like_little).
+
+0.1::preference_soft(Person, Drink, like_much);
+0.1::preference_soft(Person, Drink, like_no);
+0.4::preference_soft(Person, Drink, like_little);
+0.4::preference_soft(Person, Drink, like_verymuch) :-
+  preference(Person, Drink, like_much).
+
+0.5::preference_soft(Person, Drink, like_verymuch);
+0.1::preference_soft(Person, Drink, like_little);
+0.4::preference_soft(Person, Drink, like_much) :-
+  preference(Person, Drink, like_verymuch).
+\end{verbatim}
+We made the assumption that the sum of all probabilities for each like-level should be 1, so for example P(like\_no = like\_no) = 0.4. In file \texttt{beverages.pl}, the \texttt{buy2} relation uses this soft preference
+
+The probability of John buying whiskey using the normal preferences is 0.1, since he likes it a little. When using the soft preference, there is a probability of 0.5 that he does not buy it (P(like\_no = like\_little) = 0.5), a probability of 0.4 that he buys it with a probability of 0.5 (P(like\_little = like\_much) = 0.4) and a probability of 0.1 that he buys whiskey with a probability of 0.9 (P(like\_little = like\_verymuch) = 0.1). When these probabilities are multiplied and added, the result is 0.29. It can be seen that this is not the same as when using the hard preference.
+
+\paragraph{Beverage Ontology}
+The preference using the distance between drinks can be found in file \texttt{beverages.pl}, as \texttt{preference\_with\_distance}. We encoded the ontology as tree structures with a name, a parent and a list of children. Each of these children is a tree on its own. To calculate the distance between two drinks, the list of parents for eacht drink is calculated. With these two lists, the closest common ancestor is found, and the distances of the two drinks to this ancestor are added. 
+
+Using this, we found that John is most likely to buy ale (P = 0.32). Intuitively, one would think this as well, since he likes lager much. Paul is the least likely to buy ale (P = 0.18), since he doesn't like whiskey, which is also alcoholic (and therefor quite close to ale), but he likes coffee very much, but the distance between coffee and ale is quite long, so it has almost no influence. 
+
+Additional background information can be added in several ways. For example the alcoholic level of the different beverages could be added to the system, and people would be more likely to buy drinks with an alcoholic level close to what they like. Another example is the adding of a recommender system, where people with similar preferences are analysed. For example, when person A likes whiskey, and person B, C and D like whiskey and beer, person A will probably like beer.
+
+\section{Document Classification}
+The code for our noisy-or model can be found in \texttt{noisy-or.pl}, while the naive bayes can be found in \texttt{naive-bayes.pl}. The results of training these systems are in respectively \texttt{noisy\_trained.pl} and \texttt{bayes\_trained.pl}.
+
+\end{document}
