@@ -1,0 +1,135 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+
+\title{Capita selecta Artificial Intelligence \\ High Level Robot Programming}
+\author{Thijs Dieltjens \and Wout Vekemans }
+\date{December 2015}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\maketitle
+\section{Part 1}
+\subsection{Fluents}
+We define fluents for the position of the robot and the positions of the minerals. The positions of the holes are fixed, and therefore not fluent.
+\begin{itemize}
+\item \texttt{currentPosition(x,y,s)}
+\item \texttt{mineral(x,y,s)}
+\end{itemize}
+\subsection{Primitive Actions}
+The action theory to solve the Mars Rover problem contains three basic actions. Two of these are to move horizontally and vertically on the field. They each take a list that contains pairs that represent the movements. A pair that can be in this list is $[(1,2),(2,2)]$, which represents a movement to the right, starting at position $(1,2)$. The third action is one to pick up a mineral at a certain position.
+\begin{itemize}
+\item \texttt{hmove(visited,amount)}
+\item \texttt{vmove(visited,amount)}
+\item \texttt{collect\_mineral((x,y))}
+\end{itemize}.
+
+\subsection{Preconditions}
+The preconditions for the move predicates are based on the current position, whether or not there is a hole, and whether or not the move has already been made. This last restriction is added to prevent loops. Whenever the robot arrives on a square, it should go in another direction than all previous moves from that square. The \texttt{member} that is used in the preconditions takes an element, and a list. It returns true if the element is in the list and false if the element is not in the list.
+\begin{itemize}
+\item \texttt{poss(hmove(Visited,1),s) $\equiv$ currentPosition(x,y,s) $\wedge$ x$<$3 $\wedge$ x1 is x$+$1 $\wedge  \neg$hole((x1,y)) $\wedge \neg$member(((x,y),(x1,y)),Visited).}
+\item \texttt{poss(hmove(Visited,1),s) $\equiv$ currentPosition(x,y,s) $\wedge$ x$>$0 $\wedge$ x1 is x$-$1 $\wedge  \neg$hole((x1,y)) $\wedge \neg$member(((x,y),(x1,y)),Visited).}
+\item \texttt{poss(hmove(Visited,1),s) $\equiv$ currentPosition(x,y,s) $\wedge$ y$<$3 $\wedge$ y1 is y$+$1 $\wedge  \neg$hole((x,y1)) $\wedge \neg$member(((x,y),(x,y1)),Visited).}
+\item \texttt{poss(hmove(Visited,1),s) $\equiv$ currentPosition(x,y,s) $\wedge$ y$>$0 $\wedge$ y1 is y$-$1 $\wedge  \neg$hole((x,y1)) $\wedge \neg$member(((x,y),(x,y1)),Visited).}
+\end{itemize}
+
+The precondition to pick up a mineral is less complex. It only states that there should be a mineral on the position the robot wants to pick up a mineral and that the robot is on that position.
+\begin{itemize}
+\item \texttt{poss(collect\_mineral((x,y)),s) $\equiv$ currentPosition(x,y,s) $\wedge$ \\ mineral((x,y),s).}
+\end{itemize}
+
+\subsection{successor state Axioms}
+The position of the robot changes only when there is an action that is \texttt{hmove} or \texttt{vmove}
+\begin{itemize}
+\item currentPosition(x1,y,do(a,s)) $\equiv$ a = hmove(1) $\wedge$ currentPosition(x, y, s) $\wedge$ x1 = x + 1 $\vee$ $\neg\exists x,y$ a = hmove(x,y) $\wedge$ $\neg\exists x,y$ a = vmove(x,y) $\wedge$ currentPosition(x1,y,s)).
+\item currentPosition(x1,y,do(a,s)) $\equiv$ a = hmove(-1) $\wedge$ currentPosition(x, y, s) $\wedge$ x1 = x - 1 $\vee$ $\neg\exists x,y$ a = hmove(x,y) $\wedge$ $\neg\exists x,y$ a = vmove(x,y) $\wedge$ currentPosition(x1,y,s)).
+\item currentPosition(x,y1,do(a,s)) $\equiv$ a = vmove(1) $\wedge$ currentPosition(x, y, s) $\wedge$ y1 = y + 1 $\vee$ $\neg\exists x,y$ a = hmove(x,y) $\wedge$ $\neg\exists x,y$ a = vmove(x,y) $\wedge$ currentPosition(x,y1,s)).
+\item currentPosition(x,y1,do(a,s)) $\equiv$ a = vmove(-1) $\wedge$ currentPosition(x, y, s) $\wedge$ y1 = y - 1 $\vee$ $\neg\exists x,y$ a = hmove(x,y) $\wedge$ $\neg\exists x,y$ a = vmove(x,y) $\wedge$ currentPosition(x,y1,s)).
+\end{itemize}
+
+The \texttt{mineral} fluent only changes when the robot picks up a mineral
+\begin{itemize}
+\item mineral(position,do(a,s)) $\equiv$ mineral(position,s) $\wedge$ a $\neg$ collect\_mineral(position).
+\end{itemize}
+
+\subsection{Initial theory}
+A possible initial theory is that the robot starts in the bottom left corner of the grid, with minerals on positions (3,1) and (0,3) and a hole on position (2,2).
+\begin{itemize}
+\item \texttt{currentPosition(0,0,s0)}
+\item \texttt{mineral((3,0),s0)}
+\item \texttt{mineral((3,2),s0)}
+\item \texttt{hole(1,0)}
+
+\end{itemize}
+
+The code that implements this robot, is found in \texttt{rover.pl}. The command to run the example is \texttt{do(run, s0, S)}
+
+\section{Part 2}
+
+\subsection{Omelette via Knowledge-based Programming}
+Our solution for the omelette problem can be found in \texttt{omelette.pl}.
+At the start the robot has no knowledge of which egg is good or bad. This is why he needs a sense operation which in this case is \texttt{smell(Egg)}. The robot needs this knowledge to be able to throw bad eggs away and use good ones for the omelette. The program assumes it knows a large enough number of \texttt{available(egg)}s.
+
+\subsection{Blocks on tables via Generalized Planning}
+To solve this problem we assume the robot has two sensing operations. The first operation senses if there are still blocks left that are either not yet considered or on the floor. The second sensing operation \texttt{senseBlock} senses if a block is either on the table (\texttt{table}), on the floor and clear (\texttt{floor}) or on the floor but unclear (\texttt{unclear}). A block variable in the program corresponds with the block we are looking at. The robot has three possible actions: move a block to the table and then go to the next block (\texttt{moveToTable}), go to the next available block if the previous block is already on the table (\texttt{nextBlock}) or skip a block and move to the following one when the previous block is unclear (\texttt{skipBlock}).
+The program we would like to output is the following:
+\begin{verbatim}
+LOOP
+  CASE senseBlocksLeft OF
+     -yes:
+         CASE senseBlock OF
+            -unclear:
+                skipBlock ;
+                NEXT
+            -floor:
+                moveToTable ;
+                NEXT
+            -table:
+                nextBlock ;
+                NEXT
+         ENDC
+     -no: EXIT
+  ENDC
+ENDL
+\end{verbatim}
+
+The idea of our code is to have a \texttt{parm\_fluent} that represents the number of blocks that are unseen or on the floor (\texttt{blocks\_left}). This fluent needs to be changed whenever we move a block from the floor to the table. It also needs to be changed when we notice a previously unseen block is already on the table. When a block on the floor is unclear, this value does not need to change.
+Since after each action we proceed to a next block we would like to reset our initial value of block. We tried to do this with:
+\begin{verbatim}
+causes(ACTION,ok,block,X,or(X=unclear,or(X = floor,X=table))).
+\end{verbatim}
+This only worked well for one action. For more than one action, running the program does not find a solution in acceptable time.
+When not considering the reset of the block value, we encountered a second problem. No solution gets found when \texttt{skipBlock} does not lower the \texttt{blocks\_left} value. If we (incorrectly) do lower this value, we do get the result we want. This program can be found in \texttt{blocks1.pl}.
+
+Since debugging did not point us to a solution, we provide a program that is suboptimal. Whenever an unclear block is considered, the value of block is changed to \texttt{table} or \texttt{floor} and the block is then processed accordingly. This could be considered as going from an unclear block to a second block that is not unclear and later the first block is reconsidered when it is no longer unclear. This code can be found in \texttt{blocks2.pl}.
+
+\subsection{Analyzing Minerals via Generalized Planning}
+To solve this problem we started from the provided \texttt{treechop.pl} solution because it contains a lot of similarities. We first considered the subproblem of rocks that are only covered with sand, and changed the \texttt{treechop} code in a way that the resulting program looks like this:
+\begin{verbatim}
+LOOP
+  CASE check_sand OF
+     -no: EXIT
+     -yes:
+         break_sand ;
+         NEXT
+  ENDC
+ENDL
+store
+\end{verbatim}
+We then added a second ice layer in exactly the same way as we did with the sand layer. The first difference needed to the code is the \texttt{poss} clause for breaking the ice, since this should only be possible if the rock is no longer covered in sand. The second difference regards the \texttt{poss} clause for storing the rock. This now should only be possible when it is no longer covered with sand nor ice. The resulting code can be found in \texttt{rocks.pl}. At first running the code did not j the programs we were expecting, so we sent a first mail to clarify our problem. As a result we needed to modify Kplanner, so it would be able to work with two \texttt{parm\_fluents}. After doing this, our code no longer gave any solutions. 
+This is when we started to examine the code some more. We changed the \texttt{poss} clauses for breaking the ice so it was no longer necessary to be sand-free when breaking the ice. 
+We then changed the goal of the code to \texttt{sand=no} or \texttt{ice=no} the expected result is returned.
+Whenever we change the goal to \texttt{and(sand=no,ice=no)}, a solution can no longer be found. This is to our understanding weird behaviour, since both goals in the and-expression can be satisfied on their own, without influencing the other. 
+Thus began the next phase in trying to solve this problem, by no longer using two \texttt{parm-fluents} but mimic them using only one. We tried the following code as it was suggested:
+\begin{verbatim}
+parm_fluent((ice_max,sand_max)).
+init_parm(generate,(ice_max,sand_max),(1,1)). 
+init_parm(test,(ice_max,sand_max),(50,50)).  
+init(ice_max,A) :- init((ice_max,sand_max),(A,_)).
+init(sand_max,A) :- init((ice_max,sand_max),(_,A)).
+\end{verbatim}
+This again did not provide any results, and finished even more quickly.
+At this point we already spent more than 15 hours on this problem, so we stopped trying to get a solution because of these unexplainable bugs.
+\end{document}
